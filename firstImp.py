@@ -8,16 +8,22 @@ nodes = {}
 for anode in treeRoot.findall("node"):
 	#print (anode.tag, anode.attrib)
 	nodeNum = anode.get('id')
+	lat = anode.get('lat')
+	lon = anode.get('lon')
 	if (not nodeNum in nodes):
-		nodes[nodeNum] = 1
+		nodes[nodeNum] = [1, lat, lon]
 	else:
-		nodes[nodeNum] += 1
+		print ("in els")
+		nodes[nodeNum][0] += 1
+		break
 
 intersections = []
-for nodeNum, count in nodes:
+for nodeNum, info in nodes.iteritems():
+	#print (info)
+	count, lat, lon = info
 	if (count > 1):
-		intersections.append(nodeNum)
-		print ("intersect found! " + str(nodeNum))
+		intersections.append((lat, lon))
+		print ("intersect found! " + str(info))
 
 print (intersections)
 
