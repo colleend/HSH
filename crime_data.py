@@ -4,6 +4,8 @@ import collections
 import math
 import copy 
 import sys
+import pandas as pd
+import numpy as np
 SAMPLE_SIZE = 20000
 
 # Loads felony data
@@ -12,17 +14,21 @@ SAMPLE_SIZE = 20000
 # Gets nearest four points 
 # Finds closest edge
 # Adds closest edge to crimeCount dict 
+
+crimeCountsFile = "crimeCounts.csv"
+distanceFile = "distances.csv"
+#startingPoint = (40.766937799999994, -73.9165022)
+
 def main():
     data = load_crime_data('felonies2.csv', 'new.csv')
-    #print data
-    lats, lons, all_coords = getIntersections('nodeLocs.csv')
-    #data = data[:200]
+    lats, lons, intersectionsDict = getIntersections('nodeLocsWithTitles.csv')
+    data = data[:200]
+    data = np.abs(np.array(data)[1])
 
     crimeCounts = {}
     for pt in data:
-       #print pt
        float_pt = (float(pt[0]), float(pt[1]))
-       results = getNearestFourPts(pt, lats, lons, all_coords)
+       results = getNearestFourPts(pt, lats, lons)
        edges = getEdges(results)
        distances = getStraightLineDist(float_pt, edges)
 
@@ -33,10 +39,10 @@ def main():
            else: 
                 crimeCounts[shortestEdge] = 1
 
-    print crimeCounts
+    writeDict(crimeCounts, crimeCountsFile)
 
-
-       
+    distanceDict = getDistanceDict(startingPoint, crimeCounts.keys())
+    writeDict(distanceDict, distanceFile)
 
 # Takes data from filename and randomly shuffles it. 
 # Writes new data in filename2 with SAMPLE_SIZE rows
@@ -68,46 +74,35 @@ def load_crime_data(filename, filename2, write=False):
     f.close()
     return data
 
-# Colleen has a shorter version of this lmao
+# Gets the intersection vectors
 def getIntersections(filename):
-    lats = []
-    lons= []
-    all_coords = {}
-    with open(filename) as f:
-        reader = csv.reader(f)
-        for row in reader:
-            new_row = ''.join(row)
-            split = new_row.split()
-            node = float(split[0])
-            lat_i = float(split[1])
-            lon_i = float(split[2])
-            lats.append(lat_i)
-            lons.append(lon_i)
-            all_coords[(lat_i, lon_i)] = node
+    dataframe = pd.read_csv(filename, sep = ' ')
+    lats = set(dataframe["Latitude"].tolist())
+    lons = set(dataframe["Longitude"].tolist())
+    lats = np.absolute(np.array(sorted(lats)))
+    lons = np.absolute(np.array(sorted(lons)))
 
-    lats = sorted(lats)
-    lons = sorted(lons)
-    return lats, lons, all_coords
+    intersectionsDict = list(zip(dataframe["Latitude"], dataframe["Longitude"]))
+
+    return lats, lons, intersectionsDict
 
 def getIndices(data, pt):
 # Returns index or index range of 
     indices = []
-   # print ("data point" + str(pt))
-    #gprint ("largest " + str(data[-1]))
-    for i in range(len(data)-1):
-        #print i
-        if abs(data[i]) == abs(pt): 
-            indices.append(i)
-            return indices
+    leftIndex = np.searchsorted(data, pt, side = "left")
+    if (data[leftIndex] == pt):
+        indices.append(leftIndex)
+        return indices
 
-        elif abs(data[i]) > abs(pt): 
-            indices.append(i-1)
-            indices.append(i)
-            return indices
+    elif (data[leftIndex] > pt): 
+        indices.append(i+1)
+        indices.append(i)
+        return indices
 
-    return indices
+    else:
+        indices.append(data[-1])
 
-def getNearestFourPts(pt, lats, lons, all_coords):
+def getNearestFourPts(pt, lats, lons):
     attempts = {}
     output = []
     x = float(pt[0])
@@ -116,7 +111,7 @@ def getNearestFourPts(pt, lats, lons, all_coords):
     X_results = getIndices(lats, x)
     Y_results = getIndices(lons, y)
 
-    if(X_results != [] and Y_results != []):
+    if(len(X_results) != 0 and len(Y_results) != 0):
         # for i in X_results:
         #     output.append(lats[i])
         # for j in Y_results:
@@ -164,14 +159,21 @@ def getStraightLineDist(currPoint, closestEdgeSet):
         distances[edge] = dist
     return distances
 
+def writeDict (dic, filename):
+    with open(filename, 'wb') as f:
+        writer = csv.writer(f)
+        for key2, value in dic.iteritems():
+            writer.writerow([key2, value])
+
+def getDistanceDict (startingPoint, edgeList):
+    distanceDict = collections.defaultdict(float)
+    for edge in edgeList:
+        lastNode = edge[1]
+        mandistance = (abs(startingPoint[0]) - abs(lastNode[0]))**2 + (abs(startingPoint[1])-abs(lastNode[1]))**2
+        distance = math.sqrt(mandistance)
+        distanceDict[edge] = distance
+    return distanceDict
+
     
-
-        
-    
-
-
-
-
-
 if __name__ == '__main__':
     main()
