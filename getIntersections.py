@@ -23,7 +23,7 @@ for nodeNum, count in nodes.iteritems():
 
 # Write to csv file
 with open(newNodeFileName, 'wb') as f:
-	nodeWriter = csv.writer(f, delimiter=' ')
+	nodeWriter = csv.writer(f)
 	for node in intersections:
 		nodeWriter.writerow([node])
 
@@ -37,7 +37,7 @@ for anode in treeRoot.findall("node"):
 
 # Write to csv file of intersection node num, lat, lon
 with open(newFileName, 'wb') as csvfile:
-	locWriter = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+	locWriter = csv.writer(csvfile)
 	locWriter.writerow(["NodeNumber", "Latitude", "Longitude"])
 	for nodeNum in intersections:
 		lon, lat = nodeInfo[nodeNum]
