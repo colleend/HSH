@@ -22,8 +22,8 @@ distanceFile = "distances.csv"
 def main():
     data = load_crime_data('felonies2.csv', 'new.csv')
     lats, lons, intersectionsDict = getIntersections('nodeLocsWithTitles.csv')
-    data = data[:200]
-    data = np.abs(np.array(data)[1])
+    data = data[:2000]
+    #print (data)
 
     crimeCounts = {}
     for pt in data:
@@ -41,27 +41,37 @@ def main():
 
     writeDict(crimeCounts, crimeCountsFile)
 
-    distanceDict = getDistanceDict(startingPoint, crimeCounts.keys())
-    writeDict(distanceDict, distanceFile)
+    #distanceDict = getDistanceDict(startingPoint, crimeCounts.keys())
+    #writeDict(distanceDict, distanceFile)
 
 # Takes data from filename and randomly shuffles it. 
 # Writes new data in filename2 with SAMPLE_SIZE rows
 def load_crime_data(filename, filename2, write=False):
     coordinates = []
-    with open(filename) as f:
+    names = ["Latitude", "Longitude", "Points"]
+    dataframe = pd.read_csv(filename, names = names)
+    lats = dataframe["Latitude"].tolist()
+    lons = dataframe["Longitude"].tolist()
+    #print (dataframe)
+    #print (lats)
+    lats = np.array(lats)
+    lons = np.array(lons)
+    coordinates = list(zip(dataframe["Latitude"], dataframe["Longitude"]))
+
+    '''with open(filename) as f:
         reader = csv.reader(f)
         for row in reader:
             lat = row[0]
             lon = row[1]
             if(write): coordinates.append([latlon]) #list format
-            else: coordinates.append((lat, lon)) #tuple format
+            else: coordinates.append((lat, lon)) #tuple format'''
 
     random.shuffle(coordinates) #shuffles all coordinates
-    data = coordinates[:SAMPLE_SIZE] #sample the data 
+    #data = coordinates[:SAMPLE_SIZE] #sample the data 
 
 
 # Writes new CSV file with sampled crime data
-    if(write):
+    '''if(write):
         with open(filename2, 'wb') as f2:
             writer = csv.writer(f2)
             count = 0
@@ -71,8 +81,8 @@ def load_crime_data(filename, filename2, write=False):
                 writer.writerow(float(row))
                 count +=1
         f2.close()
-    f.close()
-    return data
+    f.close()'''
+    return coordinates
 
 # Gets the intersection vectors
 def getIntersections(filename):
@@ -88,19 +98,34 @@ def getIntersections(filename):
 
 def getIndices(data, pt):
 # Returns index or index range of 
+    absData = np.abs(data)
     indices = []
-    leftIndex = np.searchsorted(data, pt, side = "left")
-    if (data[leftIndex] == pt):
+    leftIndex = np.searchsorted(absData, abs(pt), side = "left")
+    if (leftIndex == len(absData)):
+        indices.append(len(data)-1)
+    elif (absData[leftIndex] == abs(pt)):
         indices.append(leftIndex)
-        return indices
 
-    elif (data[leftIndex] > pt): 
-        indices.append(i+1)
-        indices.append(i)
-        return indices
-
+    elif (absData[leftIndex] > abs(pt)): 
+        indices.append(leftIndex+1)
+        indices.append(leftIndex)
     else:
-        indices.append(data[-1])
+        throw (Exception("FUCK ME UP"))
+
+    return indices
+    #indices = []
+   # print ("data point" + str(pt))
+    #gprint ("largest " + str(data[-1]))
+    '''for i in range(len(data)-1):
+        #print i
+        if abs(data[i]) == abs(pt): 
+            indices.append(i)
+            return indices
+        elif abs(data[i]) > abs(pt): 
+            indices.append(i-1)
+            indices.append(i)
+            return indices
+    return indices'''
 
 def getNearestFourPts(pt, lats, lons):
     attempts = {}
@@ -167,6 +192,7 @@ def writeDict (dic, filename):
 
 def getDistanceDict (startingPoint, edgeList):
     distanceDict = collections.defaultdict(float)
+    print (edgeList)
     for edge in edgeList:
         lastNode = edge[1]
         mandistance = (abs(startingPoint[0]) - abs(lastNode[0]))**2 + (abs(startingPoint[1])-abs(lastNode[1]))**2
