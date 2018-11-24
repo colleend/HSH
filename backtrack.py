@@ -25,10 +25,10 @@ def getIndices(data, pt, neg):
         indices.append(leftIndex)
     elif (absData[leftIndex] > pt): 
         indices.append(leftIndex-1)
-        if (leftIndex != len(absData)-1):
-            indices.append(leftIndex+1)
-        else:
-            indices.append(leftIndex)
+        #if (leftIndex != len(absData)-1):
+        indices.append(leftIndex)
+        #else:
+        #    indices.append(leftIndex)
     else:
         raise Exception("FUCK ME UP")
 
@@ -68,16 +68,22 @@ def getAllEdges(crimeCounts):
     for pt in data:
         closestPoints = getNearestFourPts(pt, lats, lons)
         edges = getEdges(closestPoints)
+        if (pt == (40.766937799999994, -73.9165022)):
+            print (closestPoints)
+            print (edges)
         for edge in edges:
+            if (pt == (40.766937799999994, -73.9165022)):
+                print (edge)
             edgesList.append(edge)
 
     return lats, lons, edgesList
 
 def getAllWeights(edgesList, startingPoint, crimeCounts):
-    df = pd.read_csv(distanceFile, names = ["Edge", "Distance"])
-    distanceDict = df.set_index('Edge')['Distance'].to_dict()
+    #df = pd.read_csv(distanceFile, names = ["Edge", "Distance"])
+    #distanceDict = df.set_index('Edge')['Distance'].to_dict()
+    distanceDict = getDistanceDict(startingPoint, edgesList)
     weights = getWeights(distanceDict, crimeCounts)
-    writeDict(weights, weightsFile)
+    #writeDict(weights, weightsFile)
     return weights
 
 def backtrackingSearch(lats, lons, weights, start, stop):
@@ -85,13 +91,14 @@ def backtrackingSearch(lats, lons, weights, start, stop):
     bestTotalCost = [float('+inf')]
     bestEdges = [None]
     # CurrentPoint and endPoint are tuples of (lat, lon).
-    def recurse(currentPoint, endPoint, edges, totalCost):
+    def recurse(currentPoint, endPoint, weights, edges, totalCost):
+        print ("current point" + str(currentPoint))
         # At node having undergone |edges|, accumulated |totalCost|.
-        # Explore the neighbors of currentPoint.
-        if (abs(currentPoint[0]-endPoint[0]) <= 0.01 and abs(currentPoint[1]-endPoint[1]) <= 0.01):
+        #if ((abs(currentPoint[0]-endPoint[0]) <= 0.01 and abs(currentPoint[1]-endPoint[1]) <= 0.01)):
+        if (currentPoint == endPoint):
             # Update the best solution so far
-            print ("in if")
             if totalCost < bestTotalCost[0]:
+                print ("in if, totalcost = " + str(totalCost) + " edges = " + str(edges)) 
                 bestTotalCost[0] = totalCost
                 bestEdges[0] = edges
             return
@@ -99,13 +106,17 @@ def backtrackingSearch(lats, lons, weights, start, stop):
         # Recurse on neighbor nodes
         for neighbor in getNearestFourPts(currentPoint, lats, lons):
             takenEdge = (currentPoint, neighbor)
-            if (not str(takenEdge) in weights):
-                continue   
-            cost = weights[str(takenEdge)]
-            print (neighbor)
-            recurse(neighbor, endPoint, edges + [takenEdge], totalCost + cost)
+            print (takenEdge)
+            if (not takenEdge in weights):
+                print ("taken Edge not in weights " + str(takenEdge))
+                takenEdge = (neighbor, currentPoint)
+                if (not takenEdge in weights):
+                    print ("taken Edge REALLY not in weights " + str(takenEdge))
+                    continue
+            cost = weights[takenEdge]
+            recurse(neighbor, endPoint, weights, edges + [takenEdge], totalCost + cost)
 
-    recurse(start, stop, edges=[], totalCost=0)
+    recurse(start, stop, weights, edges=[], totalCost=0)
     return (bestTotalCost[0], bestEdges[0])
 
 def main():
@@ -114,10 +125,10 @@ def main():
     print (len(edges))
     #print (edges[1])
     startingPoint = (40.766937799999994, -73.9165022)
-    stoppingPoint = (40.46245, -73.8400)
+    stoppingPoint = (40.766938200000006, -73.9165022)
     weights = getAllWeights(edges, startingPoint, crimeCounts)
+    print (weights[((40.766937799999994, -73.9165022), (40.766938200000006, -73.9165022))])
     print (len(weights))
-    print (weights.keys()[1])
     print (backtrackingSearch(lats, lons, weights, startingPoint, stoppingPoint))
     
 if __name__ == '__main__':
