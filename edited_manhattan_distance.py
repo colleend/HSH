@@ -43,5 +43,16 @@ def getDistanceDict(startingPoint, edgeList):
 		distanceDict[edge] = milesDistance
 	return distanceDict
 
+# Old get Distance Dict, returns manhattan distance of lat and lons
+'''def getDistanceDict (startingPoint, edgeList):
+    distanceDict = collections.defaultdict(float)
+    print (edgeList)
+    for edge in edgeList:
+        lastNode = edge[1]
+        mandistance = (abs(startingPoint[0]) - abs(lastNode[0]))**2 + (abs(startingPoint[1])-abs(lastNode[1]))**2
+        distance = math.sqrt(mandistance)
+        distanceDict[edge] = distance
+    return distanceDict'''
+
 distanceDict = getDistanceDict(startingPoint, edgeList)
 print distanceDict

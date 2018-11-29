@@ -4,10 +4,15 @@ import collections
 import copy
 import math
 
+
+
 def getWeights(manhattanDistances, crimeCounts):
 	#given dictionary of edge -->manhattandistance and dict of edge --> crimeCounts
 	allWeights = {}
 	for edge, distance in manhattanDistances.iteritems():
+		if (distance == 0):
+			print (edge)
+			print (distance)
 		md = float(1)/float(distance)
 		if edge in crimeCounts:
 			numCrimes = crimeCounts[edge]
@@ -16,7 +21,8 @@ def getWeights(manhattanDistances, crimeCounts):
 		inverse = float(1)/float(numCrimes)
 		weight = md +inverse
 		allWeights[edge] = weight
-	print allWeights
+	#print allWeights
+	return allWeights
 
 # manhattanDistances = {
 # 	((1,5),(3,5)): 2,
@@ -31,5 +37,5 @@ def getWeights(manhattanDistances, crimeCounts):
 # 	((3,5),(3,8)): 2
 # }
 
-getWeights(manhattanDistances,crimeCounts)
+#getWeights(manhattanDistances,crimeCounts)
 

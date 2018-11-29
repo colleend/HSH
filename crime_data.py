@@ -6,6 +6,9 @@ import copy
 import sys
 import pandas as pd
 import numpy as np
+from getWeights import getWeights
+from edited_manhattan_distance import getDistanceDict
+
 SAMPLE_SIZE = 20000
 
 # Loads felony data
@@ -17,13 +20,16 @@ SAMPLE_SIZE = 20000
 
 crimeCountsFile = "crimeCounts.csv"
 distanceFile = "distances.csv"
-#startingPoint = (40.766937799999994, -73.9165022)
+weightsFile = "weights.csv"
+startingPoint = (40.766937799999994, -73.9165022)
+
 
 def main():
     data = load_crime_data('felonies3.csv', 'new.csv')
-    lats, lons, intersectionsDict = getIntersections('nodeLocsWithTitles.csv')
+    lats, lons, intersectionsDict = getIntersections('nodeLocsWithTitles.csv')  
 
     crimeCounts = {}
+
     for pt in data:
        float_pt = (float(pt[0]), float(pt[1]))
        results = getNearestFourPts(pt, lats, lons)
@@ -38,9 +44,11 @@ def main():
                 crimeCounts[shortestEdge] = 1
 
     writeDict(crimeCounts, crimeCountsFile)
-
-    #distanceDict = getDistanceDict(startingPoint, crimeCounts.keys())
-    #writeDict(distanceDict, distanceFile)
+    
+    distanceDict = getDistanceDict(startingPoint, crimeCounts.keys())
+    writeDict(distanceDict, distanceFile)
+    weights = getWeights(distanceDict, crimeCounts)
+    writeDict(weights, weightsFile)
 
 # Takes data from filename and randomly shuffles it. 
 # Writes new data in filename2 with SAMPLE_SIZE rows
@@ -82,7 +90,7 @@ def getIntersections(filename):
     return lats, lons, intersectionsDict
 
 def getIndices(data, pt, neg):
-# Returns index or index range of 
+# Returns index or index range of indices
     absData = data
     indices = []
     if (neg):
@@ -93,7 +101,6 @@ def getIndices(data, pt, neg):
         return indices
     elif (absData[leftIndex] == pt):
         indices.append(leftIndex)
-
     elif (absData[leftIndex] > pt): 
         indices.append(leftIndex-1)
         indices.append(leftIndex)
@@ -140,7 +147,8 @@ def getEdges(nodes):
 
 
 def getStraightLineDist(currPoint, closestEdgeSet):
-    distances = {} #edge -> distance 
+    #edge -> distance 
+    distances = {}
     if (len(closestEdgeSet) > 0):
         dist = 0
         for edge in closestEdgeSet: 
@@ -159,6 +167,8 @@ def getStraightLineDist(currPoint, closestEdgeSet):
                 dist = abs(currPoint[0] - point1[0])
             # y = mx+b
             #need to solve for b
+            if (dist == 0):
+                continue
             distances[edge] = dist
     return distances
 
@@ -167,16 +177,6 @@ def writeDict (dic, filename):
         writer = csv.writer(f)
         for key2, value in dic.iteritems():
             writer.writerow([key2, value])
-
-def getDistanceDict (startingPoint, edgeList):
-    distanceDict = collections.defaultdict(float)
-    print (edgeList)
-    for edge in edgeList:
-        lastNode = edge[1]
-        mandistance = (abs(startingPoint[0]) - abs(lastNode[0]))**2 + (abs(startingPoint[1])-abs(lastNode[1]))**2
-        distance = math.sqrt(mandistance)
-        distanceDict[edge] = distance
-    return distanceDict
 
     
 if __name__ == '__main__':

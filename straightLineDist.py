@@ -19,8 +19,7 @@ def getEdges(nodes):
 	return edgeSet
 
 
-def getStraightLineDist(currPoint, closestEdgeSet):
-	distances = {} #edge -> distance 
+def getStraightLineDist(currPoint, closestEdgeSet, distances):
 	dist = 0
 	for edge in closestEdgeSet: 
 		point1 = edge[0]
@@ -38,6 +37,8 @@ def getStraightLineDist(currPoint, closestEdgeSet):
 			dist = abs(currPoint[0] - point1[0])
 		# y = mx+b
 		#need to solve for b
+		if (dist == 0):
+			continue
 		distances[edge] = dist
 	return distances
 
