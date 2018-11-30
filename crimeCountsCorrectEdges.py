@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 import collections
 
+crimeCountsFile = "correctCrimeCounts.csv"
+
 def main():
 	# Get city graph
 	cityStreets = ox.graph_from_place('Manhattan, New York City, New York, USA')
@@ -21,6 +23,7 @@ def main():
 		nearestNodes[nearest] += 1
 
 	print(nearestNodes)
+	writeDict(nearestNodes, crimeCountsFile)
 	bbox = box(*edges.unary_union.bounds)
 	print (bbox)
 
@@ -39,14 +42,27 @@ def load_crime_data(filename):
 
 def addWeightsToGraph (graph, crimeCountsDict):
 	# for every edge in the graph, change the weight to be crimecounts of the two nodes in the edge
+	weights = {}
 	for edge in edges:
 		firstNode = edge["u"]
 		secondNode = edge["v"]
 		crimeCount = crimeCountsDict[firstNode] + crimeCountsDict[secondNode]
-		graph[firstNode][secondNode]["weight"] = crimeCount
+		weights[edge] = crimeCount + graph[firstNode][secondNode]["length"]
 
-def getShortestPath ()
+	nx.set_edge_attributes(graph, 'weights', weights)
 
+def writeDict (dic, filename):
+    with open(filename, 'wb') as f:
+        writer = csv.writer(f)
+        for key2, value in dic.iteritems():
+            writer.writerow([key2, value])
+
+
+def getShortestPath(start, destination, graph):
+	start_node = ox.get_nearest_node(graph, start, method="euclidean")
+	end_node = ox.get_nearest_node(graph, destination, method="euclidean") 
+	route = nx.shortest_path(G=graph, source=start_node, target=end_node, weight = "weights")
+	fig, ax = ox.plot_graph_route(graph, route, origin_point = start, destination_point = destination)
 
 if __name__ == '__main__':
     main()
