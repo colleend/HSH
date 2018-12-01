@@ -10,11 +10,39 @@ import numpy as np
 def getPrecinctData(filename):
     dataframe = pd.read_csv(filename)
     precincts = np.array(dataframe["Precinct"].tolist())
-    crimeCounts = np.array(dataframe["Num Crimes"].tolist())
+    precinctCounts = np.array(dataframe["Num Crimes"].tolist())
     
     # Dictionary that maps precinct number -> number of crimes
     precinctCrimeDict = dict(zip(dataframe["Precinct"], dataframe["Num Crimes"]))
-    return precincts, crimeCounts, precinctCrimeDict
+    indexToPrecinctDict = dict(zip(dataframe["Index"], dataframe["Precinct"]))
+    return precinctCrimeDict, indexToPrecinctDict
+
+
+def checkPrecinct(points):
+	path = 'C:\Users\Cassandra\Documents\precincts.shp'
+	polygon = shapefile.Reader(path) 
+	polygon = polygon.shapes() 
+
+	precinctCrimeDict, indexToPrecinctDict = getPrecinctData('historic_crime.csv')
+	polygons = [ shape.points for shape in polygon ]
+
+	edgePrecinctCrimes = []
+	newPoints = []
+
+	for pt in points:
+		x = pt[1]
+		y = pt[0]
+		newPoints.append(Point(x,y))
+
+	for point in newPoints:
+		for i,polygon in enumerate(polygons):
+			    poly = Polygon(polygon)
+			    if poly.contains(point):
+			    	precinct = indexToPrecinctDict.get(i)
+			    	edgePrecinctCrimes.append(precinctCrimeDict.get(precinct))
+	#print "done"
+
+	return edgePrecinctCrimes
 
 def main():
 
@@ -22,9 +50,7 @@ def main():
 	polygon = shapefile.Reader(path) 
 	polygon = polygon.shapes() 
 
-	precincts, crimeCounts, precinctCrimeDict = getPrecinctData('historic_crime.csv')
-
-
+	precincts, precinctCounts, precinctCrimeDict = getPrecinctData('historic_crime.csv')
 	shpfilePoints = [ shape.points for shape in polygon ]
 	p_indices = range(34)
 
@@ -34,17 +60,27 @@ def main():
 		indexToPrecinct[i] = precincts[i]
 
 	polygons = shpfilePoints
-	point = Point(-73.986048, 40.762291)
+	points = []
+	backwards = [(40.7638434, -73.9798564), (40.763845, -73.9798564),
+(40.797613299999995, -73.9142585), (40.7976144, -73.9142585),
+(40.7451151, -73.97615649999999), 
+(40.7121447, -73.9445683), (40.7372527, -73.9398978), (40.737253499999994, -73.9398978)]
+	for pt in backwards:
+		x = pt[1]
+		y = pt[0]
+		points.append(Point(x,y))
+
 
 	#Check if point is in the precinct
 	#If it is, print out the precinct number 
-	for i,polygon in enumerate(polygons):
-	    poly = Polygon(polygon)
-	    if poly.contains(point):
-	    	print 'inside'
-	    	precinct = indexToPrecinct.get(i)
-	    	print "precinct number is ", precinct
-	    	print "num crimes in precinct is ", precinctCrimeDict.get(precinct)
+	for point in points: 
+		for i,polygon in enumerate(polygons):
+		    poly = Polygon(polygon)
+		    if poly.contains(point):
+		    	print 'inside'
+		    	precinct = indexToPrecinct.get(i)
+		    	print "precinct number is ", precinct
+		    	print "num crimes in precinct is ", precinctCrimeDict.get(precinct)
 
 
 if __name__ == '__main__':
