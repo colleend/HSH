@@ -28,22 +28,14 @@ def checkPrecinct(graph):
 	polygons = [ shape.points for shape in polygon ]
 
 	edgePrecinctCrimes = collections.defaultdict(int)
-	newPoints = []
 
-	'''for pt in points:
-		x = pt[1]
-		y = pt[0]
-		newPoints.append(Point(x,y))'''
-
-	#for point in newPoints:
 	for node in graph.nodes(data=True):
 		for i,polygon in enumerate(polygons):
 			    poly = Polygon(polygon)
-			    latLonPoint = (Point(node[1]['y'], node[1]['x']))
-			    if poly.contains(point):
+			    latLonPoint = (Point(node[1]['x'], node[1]['y']))
+			    if poly.contains(latLonPoint):
 			    	precinct = indexToPrecinctDict.get(i)
-			    	edgePrecinctCrimes[node[0]] = 
-			    	edgePrecinctCrimes.append(precinctCrimeDict.get(precinct))
+			    	edgePrecinctCrimes[node[0]] = precinctCrimeDict.get(precinct)
 			    	break
 	#print "done"
 

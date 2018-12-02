@@ -6,10 +6,11 @@ import numpy as np
 import collections
 import csv
 from check_precinct import checkPrecinct
+import math
 
 crimeCountsFile = "correctCrimeCounts.csv"
-source = (40.744750, -73.995148) #(40.775150, -73.981921)
-dest = (40.733044, -73.984506) #(40.769057, -73.982266)
+source = (40.777796, -73.984264) #(40.744750, -73.995148) #(40.775150, -73.981921)
+dest = (40.760411, -73.979638) #(40.733044, -73.984506) #(40.769057, -73.982266)
 
 def main():
 	# Get city graph
@@ -17,12 +18,12 @@ def main():
 	edges = ox.graph_to_gdfs(cityStreets, nodes=False, edges=True)
 	nodes = ox.graph_to_gdfs(cityStreets, nodes=True, edges=False)
 	
-	#crimeWeightsDict = readCrimeWeights()
+	crimeWeightsDict = readCrimeWeights()
 	precinctDict = getPrecinctWeights(cityStreets,nodes)
+	print (precinctDict)
+	addWeightsToGraph(cityStreets, crimeWeightsDict, precinctDict, edges)
 
-	#addWeightsToGraph(cityStreets, crimeWeightsDict, edges)
-
-	#getShortestPath(source, dest, cityStreets)
+	getShortestPath(source, dest, cityStreets)
 
 def readCrimeWeights ():
 	names = ["NodeNum", "CrimeCount"]
@@ -56,11 +57,9 @@ def load_crime_data(filename):
     return coordinates
 
 def getPrecinctWeights (graph, nodes):
-	latLonNodes = []
-	for node in graph.nodes(data=True):
-		print (node)
+	return checkPrecinct(graph)
 
-def addWeightsToGraph (graph, crimeCountsDict, edges):
+def addWeightsToGraph (graph, crimeCountsDict, precinctDict, edges):
 	# for every edge in the graph, change the weight to be crimecounts of the two nodes in the edge
 	weights = {}
 	print(edges)
@@ -68,11 +67,12 @@ def addWeightsToGraph (graph, crimeCountsDict, edges):
 		firstNode = edge[0]
 		secondNode = edge[1]
 		crimeCount = crimeCountsDict[firstNode] + crimeCountsDict[secondNode]
+		precinctCount = precinctDict[firstNode] + precinctDict[secondNode]
 		print (edge[3]['length'])
 		print (crimeCount)
 
-		weights[(firstNode, secondNode, edge[2])] = crimeCount + edge[3]['length']
-		edge[3]['weights'] = crimeCount*3 + edge[3]['length']
+		#weights[(firstNode, secondNode, edge[2])] = crimeCount + edge[3]['length'] + math.log1p(precinctCount)
+		edge[3]['weights'] = crimeCount*2 + edge[3]['length'] +  math.log1p(precinctCount)*2
 
 def writeDict (dic, filename):
     with open(filename, 'wb') as f:
