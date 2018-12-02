@@ -9,38 +9,46 @@ import geopy.distance
 
 
 # intersections = {(0.03, 0.05): 3, (0.08, 1.2):1}
+start = (40.7199779, -74.0053254) #start lat, lon
+end = (40.7199380, -74.0014250)
+def create_csp(G, start, end, crimeCounts):
 
-def create_csp(G, start, end):
-    #start = (40.7199779, -74.0053254) #start lat, lon
-    #end = (40.7199380, -74.0014250)
     euc = geopy.distance.distance(start, end).meters #get start end as distance in km 
     #print euc
 
 
     csp = util.CSP(start, end)
-    variables = ['{}, {}'.format(node[0], crimeCounts[node]) for node in G.nodes(data=True)] 
+    variables = [(node[0], crimeCounts[node[0]]) for node in G.nodes(data=True)] 
     domain = [0, 1] #if node is in path or not 
-    for v in variables: 
-        newStr = v.split(',')
-        floatNodeNum = float(newStr[0])
-        floatCC = float(newStr[1])
-        tup = (floatNodeNum, floatCC)    
-        csp.add_variable(tup, domain)
+    for v in variables:  
+        csp.add_variable(v, domain)
 
+    print (csp.variables)
+
+    for v in variables: 
         #need to make sure start node is 1 and end node is 1 
-        if v == start or v == end:
+        # Get (lat, lon) from v
+        vLatLon = (G.nodes[v[0]]['y'], G.nodes[v[0]]['x'])
+        if (vLatLon == start or vLatLon == end):
             csp.add_unary_factor(v, lambda b: b == 1)
 
-        neighbors = G.neighbors(v) #get neighbors of v using G
+        neighbors = G.neighbors(v[0]) #get neighbors of v using G
         for neighbor in neighbors: 
-            def factor(n, neigh):
-                edgeWeight = G[n][neigh]['weight']
-                distanceTotal = G[n][neigh]['length']
+            def crimeCountLength(n, neigh):
+                #print (G.edges[v[0],neighbor, 0])
+                edgeWeight = G.edges[v[0],neighbor,0]['weights']
+                distanceTotal = G.edges[v[0],neighbor,0]['length']
                 if distanceTotal > euc: 
                     return 0
                 else: 
                     return (1./np.log(edgeWeight))
-            csp.add_binary_factor(v, neighbor, factor)
+
+            neighborCrimeCounts = crimeCounts[neighbor]
+            #print ("neighbor " + str(neighbor))
+            #print ("neighbor crime counts " + str(neighborCrimeCounts))
+            neighborV = (neighbor, neighborCrimeCounts)
+            if (v != neighborV):
+                csp.add_binary_factor(v, neighborV, crimeCountLength)
 
     return csp 
 
@@ -62,22 +70,22 @@ def create_csp(G, start, end):
 
     #impose unary factor at start and at end 
 
-'''
-def test_csp():
+
+def run_csp(crimeCounts, G):
     solver = BacktrackingSearch()
-    csp = create_csp(G)
+    csp = create_csp(G, start, end, crimeCounts)
     solver.solve(csp)
     print solver.optimalWeight
     print solver.numOptimalAssignments
     print solver.numOperations
+    print solver.optimalAssignment
 
-test_csp() '''
-create_csp()
+#run_csp()
+#create_csp()
 
-'''
+
 class BacktrackingSearch():
     
-
     def reset_results(self):
         """
         This function resets the statistics of the different aspects of the
@@ -187,6 +195,7 @@ class BacktrackingSearch():
         """
         self.numOperations += 1
         assert weight > 0
+
         if numAssigned == self.csp.numVars:
             # A satisfiable solution have been found. Update the statistics.
             self.numAssignments += 1
@@ -204,7 +213,7 @@ class BacktrackingSearch():
 
                 self.optimalAssignment = newAssignment
                 if self.firstAssignmentNumOperations == 0:
-                    self.firstAssignmentNumOperations = self.``numOperations
+                    self.firstAssignmentNumOperations = self.numOperations
             return
 
         # Select the next variable to be assigned.
@@ -257,4 +266,4 @@ class BacktrackingSearch():
                     fewestA = check 
                     correctIndex = index 
                 index += 1 
-            return unassignedVariables[correctIndex]'''
+            return unassignedVariables[correctIndex]

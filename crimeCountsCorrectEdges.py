@@ -7,23 +7,27 @@ import collections
 import csv
 from check_precinct import checkPrecinct
 import math
+from backtrackingCSP import create_csp, run_csp
 
 crimeCountsFile = "correctCrimeCounts.csv"
-source = (40.777796, -73.984264) #(40.744750, -73.995148) #(40.775150, -73.981921)
-dest = (40.760411, -73.979638) #(40.733044, -73.984506) #(40.769057, -73.982266)
+source = (40.792820, -73.943835) #(40.744750, -73.995148) #(40.775150, -73.981921)
+dest = (40.831564, -73.946945) #(40.733044, -73.984506) #(40.769057, -73.982266)
 
 def main():
 	# Get city graph
 	cityStreets = ox.graph_from_place('Manhattan, New York City, New York, USA')
+	crimeWeightsDict = readCrimeWeights()
 	edges = ox.graph_to_gdfs(cityStreets, nodes=False, edges=True)
 	nodes = ox.graph_to_gdfs(cityStreets, nodes=True, edges=False)
 	
-	crimeWeightsDict = readCrimeWeights()
+
 	precinctDict = getPrecinctWeights(cityStreets,nodes)
-	print (precinctDict)
 	addWeightsToGraph(cityStreets, crimeWeightsDict, precinctDict, edges)
 
-	getShortestPath(source, dest, cityStreets)
+	#create_csp(cityStreets, source, dest, crimeWeightsDict)
+	#run_csp(crimeWeightsDict, cityStreets)
+
+	getShortestPath(source, dest, cityStreets, False)
 
 def readCrimeWeights ():
 	names = ["NodeNum", "CrimeCount"]
@@ -68,11 +72,10 @@ def addWeightsToGraph (graph, crimeCountsDict, precinctDict, edges):
 		secondNode = edge[1]
 		crimeCount = crimeCountsDict[firstNode] + crimeCountsDict[secondNode]
 		precinctCount = precinctDict[firstNode] + precinctDict[secondNode]
-		print (edge[3]['length'])
-		print (crimeCount)
+		#print (edge[3]['length'])
+		#print (crimeCount)
 
-		#weights[(firstNode, secondNode, edge[2])] = crimeCount + edge[3]['length'] + math.log1p(precinctCount)
-		edge[3]['weights'] = crimeCount*2 + edge[3]['length'] +  math.log1p(precinctCount)*2
+		edge[3]['weights'] = crimeCount*3 + edge[3]['length'] +  math.log1p(precinctCount)*3
 
 def writeDict (dic, filename):
     with open(filename, 'wb') as f:
@@ -80,10 +83,13 @@ def writeDict (dic, filename):
         for key2, value in dic.iteritems():
             writer.writerow([key2, value])
 
-def getShortestPath(start, destination, graph):
+def getShortestPath(start, destination, graph, straight):
 	start_node = ox.get_nearest_node(graph, start, method="euclidean")
 	end_node = ox.get_nearest_node(graph, destination, method="euclidean") 
-	route = nx.shortest_path(G=graph, source=start_node, target=end_node, weight = "weights")
+	if (straight):
+		route = nx.shortest_path(G=graph, source=start_node, target=end_node, weight = "length")
+	else:
+		route = nx.shortest_path(G=graph, source=start_node, target=end_node, weight = "weights")
 	fig, ax = ox.plot_graph_route(graph, route, origin_point = start, destination_point = destination)
 
 if __name__ == '__main__':
