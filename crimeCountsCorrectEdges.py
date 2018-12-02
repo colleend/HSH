@@ -4,16 +4,36 @@ from shapely.geometry import box
 import pandas as pd
 import numpy as np
 import collections
+import csv
+from check_precinct import checkPrecinct
 
 crimeCountsFile = "correctCrimeCounts.csv"
+source = (40.744750, -73.995148) #(40.775150, -73.981921)
+dest = (40.733044, -73.984506) #(40.769057, -73.982266)
 
 def main():
 	# Get city graph
 	cityStreets = ox.graph_from_place('Manhattan, New York City, New York, USA')
 	edges = ox.graph_to_gdfs(cityStreets, nodes=False, edges=True)
 	nodes = ox.graph_to_gdfs(cityStreets, nodes=True, edges=False)
-	print(edges.head())
+	
+	#crimeWeightsDict = readCrimeWeights()
+	precinctDict = getPrecinctWeights(cityStreets,nodes)
 
+	#addWeightsToGraph(cityStreets, crimeWeightsDict, edges)
+
+	#getShortestPath(source, dest, cityStreets)
+
+def readCrimeWeights ():
+	names = ["NodeNum", "CrimeCount"]
+	crimeWeightsData = pd.read_csv(crimeCountsFile, names = names)
+	crimeCountsDict = collections.defaultdict(int)
+	for index, row in crimeWeightsData.iterrows():
+		crimeCountsDict[row['NodeNum']] = row["CrimeCount"]
+
+	return crimeCountsDict
+
+def getCrimeWeights (cityStreets):
 	# Get crime data points
 	data = load_crime_data('felonies3.csv')
 	nearestNodes = collections.defaultdict(int)
@@ -24,11 +44,6 @@ def main():
 
 	print(nearestNodes)
 	writeDict(nearestNodes, crimeCountsFile)
-	bbox = box(*edges.unary_union.bounds)
-	print (bbox)
-
-	addWeightsToGraph(cityStreets, nearestNodes)
-
 
 def load_crime_data(filename):
     coordinates = []
@@ -40,23 +55,30 @@ def load_crime_data(filename):
     coordinates = list(zip(dataframe["Latitude"], dataframe["Longitude"]))
     return coordinates
 
-def addWeightsToGraph (graph, crimeCountsDict):
+def getPrecinctWeights (graph, nodes):
+	latLonNodes = []
+	for node in graph.nodes(data=True):
+		print (node)
+
+def addWeightsToGraph (graph, crimeCountsDict, edges):
 	# for every edge in the graph, change the weight to be crimecounts of the two nodes in the edge
 	weights = {}
-	for edge in edges:
-		firstNode = edge["u"]
-		secondNode = edge["v"]
+	print(edges)
+	for edge in graph.edges.data(keys=True):
+		firstNode = edge[0]
+		secondNode = edge[1]
 		crimeCount = crimeCountsDict[firstNode] + crimeCountsDict[secondNode]
-		weights[edge] = crimeCount + graph[firstNode][secondNode]["length"]
+		print (edge[3]['length'])
+		print (crimeCount)
 
-	nx.set_edge_attributes(graph, 'weights', weights)
+		weights[(firstNode, secondNode, edge[2])] = crimeCount + edge[3]['length']
+		edge[3]['weights'] = crimeCount*3 + edge[3]['length']
 
 def writeDict (dic, filename):
     with open(filename, 'wb') as f:
         writer = csv.writer(f)
         for key2, value in dic.iteritems():
             writer.writerow([key2, value])
-
 
 def getShortestPath(start, destination, graph):
 	start_node = ox.get_nearest_node(graph, start, method="euclidean")

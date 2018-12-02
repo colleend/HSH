@@ -6,6 +6,7 @@ from shapely.geometry import Polygon, Point, MultiPolygon
 import shapefile 
 import pandas as pd
 import numpy as np
+import collections
 
 def getPrecinctData(filename):
     dataframe = pd.read_csv(filename)
@@ -18,35 +19,39 @@ def getPrecinctData(filename):
     return precinctCrimeDict, indexToPrecinctDict
 
 
-def checkPrecinct(points):
-	path = 'C:\Users\Cassandra\Documents\precincts.shp'
+def checkPrecinct(graph):
+	path = 'precincts.shp'
 	polygon = shapefile.Reader(path) 
 	polygon = polygon.shapes() 
 
 	precinctCrimeDict, indexToPrecinctDict = getPrecinctData('historic_crime.csv')
 	polygons = [ shape.points for shape in polygon ]
 
-	edgePrecinctCrimes = []
+	edgePrecinctCrimes = collections.defaultdict(int)
 	newPoints = []
 
-	for pt in points:
+	'''for pt in points:
 		x = pt[1]
 		y = pt[0]
-		newPoints.append(Point(x,y))
+		newPoints.append(Point(x,y))'''
 
-	for point in newPoints:
+	#for point in newPoints:
+	for node in graph.nodes(data=True):
 		for i,polygon in enumerate(polygons):
 			    poly = Polygon(polygon)
+			    latLonPoint = (Point(node[1]['y'], node[1]['x']))
 			    if poly.contains(point):
 			    	precinct = indexToPrecinctDict.get(i)
+			    	edgePrecinctCrimes[node[0]] = 
 			    	edgePrecinctCrimes.append(precinctCrimeDict.get(precinct))
+			    	break
 	#print "done"
 
 	return edgePrecinctCrimes
 
 def main():
 
-	path = 'C:\Users\Cassandra\Documents\precincts.shp'
+	path = 'precincts.shp'
 	polygon = shapefile.Reader(path) 
 	polygon = polygon.shapes() 
 
