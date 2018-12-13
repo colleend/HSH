@@ -9,8 +9,8 @@ import geopy.distance
 
 
 # intersections = {(0.03, 0.05): 3, (0.08, 1.2):1}
-start = (40.7199779, -74.0053254) #start lat, lon
-end = (40.7199380, -74.0014250)
+start = (40.773006, -73.981857) #start lat, lon
+end = (40.774143, -73.984840)
 def manhattanDistance (start, end):
     return abs(end[1]-start[1]) + abs(end[0]-start[0])
 
@@ -22,20 +22,22 @@ def create_csp(G, start, end, crimeCounts):
 
     csp = util.CSP(start, end)
     variables = [(node[0], crimeCounts[node[0]]) for node in G.nodes(data=True)] 
+    actualVariables = []
     domain = [0, 1] #if node is in path or not 
     smallDomain = [0]
     for v in variables:  
         vLatLon = (G.nodes[v[0]]['y'], G.nodes[v[0]]['x'])
         manhattanV = manhattanDistance(vLatLon, end)
-        if (manhattanV > 2*manhattanLimit):
-            csp.add_variable(v, smallDomain)
-        else:
+        #f (manhattanV > 2*manhattanLimit):
+        #   csp.add_variable(v, smallDomain)
+        if (manhattanV <= 2 * manhattanLimit):
             #print ("adding domains, v = " + str(vLatLon))
             csp.add_variable(v, domain)
+            actualVariables.append(v)
 
     print (csp.variables)
 
-    for v in variables: 
+    for v in actualVariables: 
         #need to make sure start node is 1 and end node is 1 
         # Get (lat, lon) from v
         vLatLon = (G.nodes[v[0]]['y'], G.nodes[v[0]]['x'])
@@ -44,20 +46,23 @@ def create_csp(G, start, end, crimeCounts):
 
         neighbors = G.neighbors(v[0]) #get neighbors of v using G
         for neighbor in neighbors: 
-            def crimeCountLength(n, neigh):
-                edgeWeight = G.edges[v[0],neighbor,0]['weights']
-                distanceTotal = G.edges[v[0],neighbor,0]['length']
-                if distanceTotal > euc: 
-                    #print ("returning 0, wierd")
-                    return 1.0
-                else: 
-                    #print ("this is the weight for factor " + str(n) + ", " + str(neigh) + str(1.0/np.log(edgeWeight)))
-                    return (10.0/np.log(edgeWeight))
+            neighLatLon = (G.nodes[neighbor]['y'], G.nodes[neighbor]['x'])
+            manhattanNeigh = manhattanDistance(neighLatLon, end)
+            if (manhattanNeigh <= 2 * manhattanLimit):
+                def crimeCountLength(n, neigh):
+                    edgeWeight = G.edges[v[0],neighbor,0]['weights']
+                    distanceTotal = G.edges[v[0],neighbor,0]['length']
+                    if distanceTotal > euc: 
+                        #print ("returning 0, wierd")
+                        return 0.0
+                    else: 
+                        #print ("this is the weight for factor " + str(n) + ", " + str(neigh) + str(1.0/np.log(edgeWeight)))
+                        return (10.0/np.log(edgeWeight))
 
-            neighborCrimeCounts = crimeCounts[neighbor]
-            neighborV = (neighbor, neighborCrimeCounts)
-            if (v != neighborV):
-                csp.add_binary_factor(v, neighborV, crimeCountLength)
+                neighborCrimeCounts = crimeCounts[neighbor]
+                neighborV = (neighbor, neighborCrimeCounts)
+                if (v != neighborV):
+                    csp.add_binary_factor(v, neighborV, crimeCountLength)
 
     return csp 
 
@@ -156,7 +161,7 @@ class BacktrackingSearch():
         for var2, factor in self.csp.binaryFactors[var].iteritems():
             if var2 not in assignment: continue  # Not assigned yet
             w *= factor[val][assignment[var2]]
-            print ("w is " + str(w) + " for " + str(var2))
+            #print ("w is " + str(w) + " for " + str(var2))
             if w == 0.0: return w
         return w
 

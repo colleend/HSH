@@ -10,10 +10,13 @@ import math
 from backtrackingCSP import create_csp, run_csp
 
 crimeCountsFile = "correctCrimeCounts.csv"
-source = (40.792820, -73.943835) #(40.744750, -73.995148) #(40.775150, -73.981921)
-dest = (40.831564, -73.946945) #(40.733044, -73.984506) #(40.769057, -73.982266)
+source = (40.773006, -73.981857) #(40.792820, -73.943835) #(40.744750, -73.995148) #(40.775150, -73.981921)
+dest = (40.774143, -73.984840) #(40.831564, -73.946945) #(40.733044, -73.984506) #(40.769057, -73.982266)
 #source = (40.744750, -73.995148)
 #dest = (40.733044, -73.984506)
+FairfaxHotel = (40.756757, -73.992702)
+LadureeRes = (40.724689, -74.002391)
+
 def main():
 	# Get city graph
 	cityStreets = ox.graph_from_place('Manhattan, New York City, New York, USA')
@@ -24,10 +27,10 @@ def main():
 	precinctDict = getPrecinctWeights(cityStreets,nodes)
 	addWeightsToGraph(cityStreets, crimeWeightsDict, precinctDict, edges)
 
-	create_csp(cityStreets, source, dest, crimeWeightsDict)
-	run_csp(crimeWeightsDict, cityStreets)
+	#create_csp(cityStreets, source, dest, crimeWeightsDict)
+	#run_csp(crimeWeightsDict, cityStreets)
 
-	#getShortestPath(source, dest, cityStreets, False)
+	getShortestPath(FairfaxHotel, LadureeRes, cityStreets, False)
 
 def readCrimeWeights ():
 	names = ["NodeNum", "CrimeCount"]
@@ -75,7 +78,8 @@ def addWeightsToGraph (graph, crimeCountsDict, precinctDict, edges):
 		#print (edge[3]['length'])
 		#print (crimeCount)
 
-		edge[3]['weights'] = crimeCount + edge[3]['length'] +  math.log1p(precinctCount)
+		edge[3]['weights'] = 3*crimeCount + edge[3]['length'] +  3*math.log1p(precinctCount)
+		#edge[3]['weights'] = crimeCount + edge[3]['length'] +  math.log1p(precinctCount)
 
 def writeDict (dic, filename):
     with open(filename, 'wb') as f:
