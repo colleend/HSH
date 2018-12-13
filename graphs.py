@@ -8,3 +8,4 @@ ox.plot_graph(cityStreets)
 edges = ox.graph_to_gdfs(city, nodes=False, edges=True)
 nodes = ox.graph_to_gdfs(city, nodes=True, edge=False)
 print(edges.head())
+

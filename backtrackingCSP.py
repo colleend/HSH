@@ -11,17 +11,27 @@ import geopy.distance
 # intersections = {(0.03, 0.05): 3, (0.08, 1.2):1}
 start = (40.7199779, -74.0053254) #start lat, lon
 end = (40.7199380, -74.0014250)
+def manhattanDistance (start, end):
+    return abs(end[1]-start[1]) + abs(end[0]-start[0])
+
 def create_csp(G, start, end, crimeCounts):
 
     euc = geopy.distance.distance(start, end).meters #get start end as distance in km 
+    manhattanLimit = manhattanDistance(start, end)
     #print euc
-
 
     csp = util.CSP(start, end)
     variables = [(node[0], crimeCounts[node[0]]) for node in G.nodes(data=True)] 
     domain = [0, 1] #if node is in path or not 
+    smallDomain = [0]
     for v in variables:  
-        csp.add_variable(v, domain)
+        vLatLon = (G.nodes[v[0]]['y'], G.nodes[v[0]]['x'])
+        manhattanV = manhattanDistance(vLatLon, end)
+        if (manhattanV > 2*manhattanLimit):
+            csp.add_variable(v, smallDomain)
+        else:
+            #print ("adding domains, v = " + str(vLatLon))
+            csp.add_variable(v, domain)
 
     print (csp.variables)
 
@@ -35,17 +45,16 @@ def create_csp(G, start, end, crimeCounts):
         neighbors = G.neighbors(v[0]) #get neighbors of v using G
         for neighbor in neighbors: 
             def crimeCountLength(n, neigh):
-                #print (G.edges[v[0],neighbor, 0])
                 edgeWeight = G.edges[v[0],neighbor,0]['weights']
                 distanceTotal = G.edges[v[0],neighbor,0]['length']
                 if distanceTotal > euc: 
-                    return 0
+                    #print ("returning 0, wierd")
+                    return 1.0
                 else: 
-                    return (1./np.log(edgeWeight))
+                    #print ("this is the weight for factor " + str(n) + ", " + str(neigh) + str(1.0/np.log(edgeWeight)))
+                    return (10.0/np.log(edgeWeight))
 
             neighborCrimeCounts = crimeCounts[neighbor]
-            #print ("neighbor " + str(neighbor))
-            #print ("neighbor crime counts " + str(neighborCrimeCounts))
             neighborV = (neighbor, neighborCrimeCounts)
             if (v != neighborV):
                 csp.add_binary_factor(v, neighborV, crimeCountLength)
@@ -143,11 +152,12 @@ class BacktrackingSearch():
         w = 1.0
         if self.csp.unaryFactors[var]:
             w *= self.csp.unaryFactors[var][val]
-            if w == 0: return w
+            if w == 0.0: return w
         for var2, factor in self.csp.binaryFactors[var].iteritems():
             if var2 not in assignment: continue  # Not assigned yet
             w *= factor[val][assignment[var2]]
-            if w == 0: return w
+            print ("w is " + str(w) + " for " + str(var2))
+            if w == 0.0: return w
         return w
 
     def solve(self, csp, mcv = False, ac3 = False):
@@ -194,7 +204,7 @@ class BacktrackingSearch():
         @param weight: The weight of the current partial assignment.
         """
         self.numOperations += 1
-        assert weight > 0
+        assert weight > 0.0
 
         if numAssigned == self.csp.numVars:
             # A satisfiable solution have been found. Update the statistics.
@@ -204,7 +214,7 @@ class BacktrackingSearch():
                 newAssignment[var] = assignment[var]
             self.allAssignments.append(newAssignment)
 
-            if len(self.optimalAssignment) == 0 or weight >= self.optimalWeight:
+            if len(self.optimalAssignment) == 0.0 or weight >= self.optimalWeight:
                 if weight == self.optimalWeight:
                     self.numOptimalAssignments += 1
                 else:
@@ -224,7 +234,7 @@ class BacktrackingSearch():
         # Continue the backtracking recursion using |var| and |ordered_values|.
         for val in ordered_values:
             deltaWeight = self.get_delta_weight(assignment, var, val)
-            if deltaWeight > 0:
+            if deltaWeight > 0.0:
                 assignment[var] = val
                 self.backtrack(assignment, numAssigned + 1, weight * deltaWeight)
                 del assignment[var]
