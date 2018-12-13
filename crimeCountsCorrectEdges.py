@@ -29,10 +29,10 @@ def main():
 	precinctDict = getPrecinctWeights(cityStreets,nodes)
 	addWeightsToGraph(cityStreets, crimeWeightsDict, precinctDict, edges)
 
-	create_csp(cityStreets, source, dest, crimeWeightsDict)
-	run_csp(crimeWeightsDict, cityStreets)
+	#create_csp(cityStreets, source, dest, crimeWeightsDict)
+	#run_csp(crimeWeightsDict, cityStreets)
 
-	#route = getShortestPath(start, end, cityStreets, False)
+	route = getShortestPath(start, end, cityStreets, False)
 	errorAnalysis(route, cityStreets, start, end, crimeWeightsDict)
 
 def readCrimeWeights ():
@@ -97,17 +97,22 @@ def getShortestPath(start, destination, graph, straight):
 		route = nx.shortest_path(G=graph, source=start_node, target=end_node, weight = "length")
 	else:
 		route = nx.shortest_path(G=graph, source=start_node, target=end_node, weight = "weights")
-		print (route)
 	fig, ax = ox.plot_graph_route(graph, route, origin_point = start, destination_point = destination)
 	return route
 
 def errorAnalysis (route, graph, start, end, crimeCountsDict):
 	totalCrimeCounts = 0
-	totalLength = nx.shortest_path_length(graph, start, end)
+	start_node = ox.get_nearest_node(graph, start, method="euclidean")
+	end_node = ox.get_nearest_node(graph, end, method="euclidean") 
+	totalLength = nx.shortest_path_length(graph, start_node, end_node)
+	realroute = []
 	for node in route:
 		totalCrimeCounts += crimeCountsDict[node]
-	print (totalCrimeCounts)
-	print (totalLength)
+		realroute.append((graph.nodes[node]['y'], graph.nodes[node]['x']))
+	print ("total crime counts = " + str(totalCrimeCounts))
+	print ("total path length = " + str(totalLength))
+	print ("real route is = ")
+	print (realroute)
 
 
 if __name__ == '__main__':
