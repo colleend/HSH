@@ -12,8 +12,10 @@ from backtrackingCSP import create_csp, run_csp
 crimeCountsFile = "correctCrimeCounts.csv"
 source = (40.773006, -73.981857) #(40.792820, -73.943835) #(40.744750, -73.995148) #(40.775150, -73.981921)
 dest = (40.774143, -73.984840) #(40.831564, -73.946945) #(40.733044, -73.984506) #(40.769057, -73.982266)
-#source = (40.744750, -73.995148)
-#dest = (40.733044, -73.984506)
+
+start = (40.792820, -73.943835)
+end = (40.831564, -73.946945)
+
 FairfaxHotel = (40.756757, -73.992702)
 LadureeRes = (40.724689, -74.002391)
 
@@ -27,10 +29,11 @@ def main():
 	precinctDict = getPrecinctWeights(cityStreets,nodes)
 	addWeightsToGraph(cityStreets, crimeWeightsDict, precinctDict, edges)
 
-	#create_csp(cityStreets, source, dest, crimeWeightsDict)
-	#run_csp(crimeWeightsDict, cityStreets)
+	create_csp(cityStreets, source, dest, crimeWeightsDict)
+	run_csp(crimeWeightsDict, cityStreets)
 
-	getShortestPath(FairfaxHotel, LadureeRes, cityStreets, False)
+	#route = getShortestPath(start, end, cityStreets, False)
+	errorAnalysis(route, cityStreets, start, end, crimeWeightsDict)
 
 def readCrimeWeights ():
 	names = ["NodeNum", "CrimeCount"]
@@ -96,6 +99,16 @@ def getShortestPath(start, destination, graph, straight):
 		route = nx.shortest_path(G=graph, source=start_node, target=end_node, weight = "weights")
 		print (route)
 	fig, ax = ox.plot_graph_route(graph, route, origin_point = start, destination_point = destination)
+	return route
+
+def errorAnalysis (route, graph, start, end, crimeCountsDict):
+	totalCrimeCounts = 0
+	totalLength = nx.shortest_path_length(graph, start, end)
+	for node in route:
+		totalCrimeCounts += crimeCountsDict[node]
+	print (totalCrimeCounts)
+	print (totalLength)
+
 
 if __name__ == '__main__':
     main()
