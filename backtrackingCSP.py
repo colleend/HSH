@@ -9,8 +9,8 @@ import geopy.distance
 
 
 # intersections = {(0.03, 0.05): 3, (0.08, 1.2):1}
-start = (40.773006, -73.981857) #start lat, lon
-end = (40.774143, -73.984840)
+start = (40.766117, -73.969584)
+end = (40.765436, -73.968096)
 def manhattanDistance (start, end):
     return abs(end[1]-start[1]) + abs(end[0]-start[0])
 
@@ -18,22 +18,25 @@ def create_csp(G, start, end, crimeCounts):
 
     euc = geopy.distance.distance(start, end).meters #get start end as distance in km 
     manhattanLimit = manhattanDistance(start, end)
-    #print euc
+    print ("manhattan limit = " + str(manhattanLimit))
 
     csp = util.CSP(start, end)
     variables = [(node[0], crimeCounts[node[0]]) for node in G.nodes(data=True)] 
     actualVariables = []
     domain = [0, 1] #if node is in path or not 
     smallDomain = [0]
+    numVars = 0
     for v in variables:  
         vLatLon = (G.nodes[v[0]]['y'], G.nodes[v[0]]['x'])
         manhattanV = manhattanDistance(vLatLon, end)
         #f (manhattanV > 2*manhattanLimit):
         #   csp.add_variable(v, smallDomain)
-        if (manhattanV <= 2 * manhattanLimit):
-            #print ("adding domains, v = " + str(vLatLon))
+        if (manhattanV <= manhattanLimit):
+            print ("manhattan V = " + str(manhattanV))
+            print ("adding domains, v = " + str(vLatLon))
             csp.add_variable(v, domain)
             actualVariables.append(v)
+            numVars += 1
 
     print (csp.variables)
 
@@ -48,16 +51,18 @@ def create_csp(G, start, end, crimeCounts):
         for neighbor in neighbors: 
             neighLatLon = (G.nodes[neighbor]['y'], G.nodes[neighbor]['x'])
             manhattanNeigh = manhattanDistance(neighLatLon, end)
-            if (manhattanNeigh <= 2 * manhattanLimit):
+            if (manhattanNeigh <= manhattanLimit):
                 def crimeCountLength(n, neigh):
                     edgeWeight = G.edges[v[0],neighbor,0]['weights']
                     distanceTotal = G.edges[v[0],neighbor,0]['length']
+                    if (n == 0 or neigh == 0):
+                        return 11
                     if distanceTotal > euc: 
-                        #print ("returning 0, wierd")
+                        print ("returning 0, wierd")
                         return 0.0
                     else: 
-                        #print ("this is the weight for factor " + str(n) + ", " + str(neigh) + str(1.0/np.log(edgeWeight)))
-                        return (10.0/np.log(edgeWeight))
+                        print ("this is the weight for factor " + str(n) + ", " + str(neigh) + str(5.0/np.log(edgeWeight)) + " lol " + str(np.log(edgeWeight)))
+                        return (5.0/np.log(edgeWeight))
 
                 neighborCrimeCounts = crimeCounts[neighbor]
                 neighborV = (neighbor, neighborCrimeCounts)
@@ -93,6 +98,8 @@ def run_csp(crimeCounts, G):
     print solver.numOptimalAssignments
     print solver.numOperations
     print solver.optimalAssignment
+    for n in solver.optimalAssignment:
+        print ((G.nodes[n[0]]['x'], G.nodes[n[0]]['y']))
 
 #run_csp()
 #create_csp()
@@ -133,6 +140,7 @@ class BacktrackingSearch():
         if self.optimalAssignment:
             print "Found %d optimal assignments with weight %f in %d operations" % \
                 (self.numOptimalAssignments, self.optimalWeight, self.numOperations)
+            print ("optimalAssignment = " + str(self.optimalAssignment))
             print "First assignment took %d operations" % self.firstAssignmentNumOperations
         else:
             print "No solution was found."
@@ -157,12 +165,11 @@ class BacktrackingSearch():
         w = 1.0
         if self.csp.unaryFactors[var]:
             w *= self.csp.unaryFactors[var][val]
-            if w == 0.0: return w
+            if w == 0: return w
         for var2, factor in self.csp.binaryFactors[var].iteritems():
             if var2 not in assignment: continue  # Not assigned yet
             w *= factor[val][assignment[var2]]
-            #print ("w is " + str(w) + " for " + str(var2))
-            if w == 0.0: return w
+            if w == 0: return w
         return w
 
     def solve(self, csp, mcv = False, ac3 = False):
@@ -209,7 +216,7 @@ class BacktrackingSearch():
         @param weight: The weight of the current partial assignment.
         """
         self.numOperations += 1
-        assert weight > 0.0
+        assert weight > 0
 
         if numAssigned == self.csp.numVars:
             # A satisfiable solution have been found. Update the statistics.
@@ -239,9 +246,12 @@ class BacktrackingSearch():
         # Continue the backtracking recursion using |var| and |ordered_values|.
         for val in ordered_values:
             deltaWeight = self.get_delta_weight(assignment, var, val)
-            if deltaWeight > 0.0:
+            if deltaWeight > 0:
                 assignment[var] = val
+                localCopy = copy.deepcopy(self.domains)
+                self.domains[var] = [val]
                 self.backtrack(assignment, numAssigned + 1, weight * deltaWeight)
+                self.domains = localCopy
                 del assignment[var]
 
     def get_unassigned_variable(self, assignment):
