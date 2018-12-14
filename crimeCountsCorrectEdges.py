@@ -10,14 +10,10 @@ import math
 from backtrackingCSP import create_csp, run_csp
 
 crimeCountsFile = "correctCrimeCounts.csv"
-source = (40.778217, -73.974598) #(40.792820, -73.943835) #(40.744750, -73.995148) #(40.775150, -73.981921)
-dest = (40.778217, -73.974598) #(40.831564, -73.946945) #(40.733044, -73.984506) #(40.769057, -73.982266)
 
-start = (40.792820, -73.943835)
-end = (40.831564, -73.946945)
-
-FairfaxHotel = (40.756757, -73.992702)
-LadureeRes = (40.724689, -74.002391)
+start = (40.747739, -73.986098)
+end = (40.760864, -73.995094)
+CSP = False
 
 
 def main():
@@ -30,11 +26,11 @@ def main():
 	precinctDict = getPrecinctWeights(cityStreets,nodes)
 	addWeightsToGraph(cityStreets, crimeWeightsDict, precinctDict, edges)
 
-	create_csp(cityStreets, source, dest, crimeWeightsDict)
-	run_csp(crimeWeightsDict, cityStreets)
-
-	#route = getShortestPath(start, end, cityStreets, False)
-	#errorAnalysis(route, cityStreets, start, end, crimeWeightsDict)
+	if (CSP):
+		route = run_csp(crimeWeightsDict, cityStreets)
+	else:
+		route = getShortestPath(start, end, cityStreets, False)
+		errorAnalysis(route, cityStreets, start, end, crimeWeightsDict)
 
 def readCrimeWeights ():
 	names = ["NodeNum", "CrimeCount"]
@@ -54,7 +50,6 @@ def getCrimeWeights (cityStreets):
 		nearest = ox.get_nearest_node(cityStreets, pt, method="euclidean")
 		nearestNodes[nearest] += 1
 
-	print(nearestNodes)
 	writeDict(nearestNodes, crimeCountsFile)
 
 def load_crime_data(filename):
@@ -79,11 +74,9 @@ def addWeightsToGraph (graph, crimeCountsDict, precinctDict, edges):
 		secondNode = edge[1]
 		crimeCount = crimeCountsDict[firstNode] + crimeCountsDict[secondNode]
 		precinctCount = precinctDict[firstNode] + precinctDict[secondNode]
-		#print (edge[3]['length'])
-		#print (crimeCount)
 
 		edge[3]['weights'] = 3*crimeCount + edge[3]['length'] +  3*math.log1p(precinctCount)
-		#edge[3]['weights'] = crimeCount + edge[3]['length'] +  math.log1p(precinctCount)
+		#edge[3]['weights'] = crimeCount + 2*edge[3]['length'] +  3*math.log1p(precinctCount)
 
 def writeDict (dic, filename):
     with open(filename, 'wb') as f:
@@ -104,7 +97,7 @@ def getShortestPath(start, destination, graph, straight):
 def errorAnalysis (route, graph, start, end, crimeCountsDict):
 	totalCrimeCounts = 0
 	totalLength = 0
-	for i in range(0, length(route)-1):
+	for i in range(0, len(route)-1):
 		totalLength += graph.edges[route[i], route[i+1],0]['length']
 	realroute = []
 	for node in route:
@@ -114,6 +107,7 @@ def errorAnalysis (route, graph, start, end, crimeCountsDict):
 	print ("total path length = " + str(totalLength))
 	print ("real route is = ")
 	print (realroute)
+	print ("number of intersections is = " + str(len(realroute)))
 
 
 if __name__ == '__main__':

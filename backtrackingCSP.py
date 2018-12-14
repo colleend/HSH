@@ -6,11 +6,12 @@ import pandas as pd
 import networkx as nx
 import math
 import geopy.distance 
+import osmnx as ox
 
 
 # intersections = {(0.03, 0.05): 3, (0.08, 1.2):1}
-start = (40.766117, -73.969584)
-end = (40.765436, -73.968096)
+start = (40.766740, -73.969148)
+end = (40.766130, -73.967678)
 def manhattanDistance (start, end):
     return abs(end[1]-start[1]) + abs(end[0]-start[0])
 
@@ -24,24 +25,15 @@ def create_csp(G, start, end, crimeCounts):
     variables = [(node[0], crimeCounts[node[0]]) for node in G.nodes(data=True)] 
     actualVariables = []
     domain = [0, 1] #if node is in path or not 
-    smallDomain = [0]
-    numVars = 0
     for v in variables:  
         vLatLon = (G.nodes[v[0]]['y'], G.nodes[v[0]]['x'])
         manhattanV = manhattanDistance(vLatLon, end)
-        #f (manhattanV > 2*manhattanLimit):
-        #   csp.add_variable(v, smallDomain)
         if (manhattanV <= manhattanLimit):
-            print ("manhattan V = " + str(manhattanV))
-            print ("adding domains, v = " + str(vLatLon))
             csp.add_variable(v, domain)
             actualVariables.append(v)
-            numVars += 1
-
-    print (csp.variables)
 
     for v in actualVariables: 
-        #need to make sure start node is 1 and end node is 1 
+        # Need to make sure start node is 1 and end node is 1 
         # Get (lat, lon) from v
         vLatLon = (G.nodes[v[0]]['y'], G.nodes[v[0]]['x'])
         if (vLatLon == start or vLatLon == end):
@@ -58,10 +50,8 @@ def create_csp(G, start, end, crimeCounts):
                     if (n == 0 or neigh == 0):
                         return 11
                     if distanceTotal > euc: 
-                        print ("returning 0, wierd")
                         return 0.0
                     else: 
-                        print ("this is the weight for factor " + str(n) + ", " + str(neigh) + str(5.0/np.log(edgeWeight)) + " lol " + str(np.log(edgeWeight)))
                         return (5.0/np.log(edgeWeight))
 
                 neighborCrimeCounts = crimeCounts[neighbor]
@@ -71,25 +61,6 @@ def create_csp(G, start, end, crimeCounts):
 
     return csp 
 
-
-'''
-    variables = ['{}, {}'.format(lat,lon) for (lat, lon) in intersections] 
-    for v in variables:
-        newStr = v.split(',')
-        floatLat = float(newStr[0])
-        floatLon = float(newStr[1])
-        tup = (floatLat, floatLon)
-        domain = intersections[tup]
-        csp.add_variable(tup, domain)'''
-
-    #G = nx.graph()
-
-
-    #impose binary factors 
-
-    #impose unary factor at start and at end 
-
-
 def run_csp(crimeCounts, G):
     solver = BacktrackingSearch()
     csp = create_csp(G, start, end, crimeCounts)
@@ -98,11 +69,13 @@ def run_csp(crimeCounts, G):
     print solver.numOptimalAssignments
     print solver.numOperations
     print solver.optimalAssignment
+    route = []
     for n in solver.optimalAssignment:
-        print ((G.nodes[n[0]]['x'], G.nodes[n[0]]['y']))
-
-#run_csp()
-#create_csp()
+        if (n[1] == 1):
+            route.append(n[0])
+    print(route)
+    #fig, ax = ox.plot_graph_route(G, route, origin_point = start, destination_point = end)
+    return route
 
 
 class BacktrackingSearch():
